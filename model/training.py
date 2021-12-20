@@ -109,7 +109,18 @@ def test(model, loader, device, epoch, writer):
     for i, data in tqdm(enumerate(loader), total=len(loader)):
 
         data = data.to(device)
-        result = model(data)
+        org_loss = model(data)
+
+        if epoch > 0:
+            conf = construct_conformers(data, model)
+            pos_list = data.pos
+            pos = torch.cat([torch.cat([p[0][0] for p in pos_list]).unsqueeze(1)], dim=1)
+            MSE_loss_func = nn.MSELoss()
+            rec_loss = MSE_loss_func(conf, pos)
+            result = org_loss + rec_loss
+        else:
+            result = org_loss
+        
         loss_all += result.item()
 
         a += model.one_hop_loss_write.item()
