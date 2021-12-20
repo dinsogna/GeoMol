@@ -48,7 +48,16 @@ def construct_conformers(data, model):
                 p_mask = [True if a in Sx else False for a in sorted(cycle_avg_indices)]
                 q_mask = [True if a in sorted(cycle_avg_indices) else False for a in Sx]
                 p_reorder = sorted(range(len(cycle_avg_indices)), key=lambda k: cycle_avg_indices[k])
+                # WE ADDED TRY / EXCEPT
                 aligned_cycle_coords = align_coords_Kabsch(cycle_avg_coords[p_reorder].permute(1, 0, 2).unsqueeze(0), new_pos[Sx].permute(1, 0, 2), p_mask, q_mask)
+                '''
+                try:
+                    aligned_cycle_coords = align_coords_Kabsch(cycle_avg_coords[p_reorder].permute(1, 0, 2).unsqueeze(0), new_pos[Sx].permute(1, 0, 2), p_mask, q_mask)
+                    # print(f"CYCLE: {cycle_avg_coords.shape}")
+                    # print(f"ALIGNED: {aligned_cycle_coords.shape}")
+                except:
+                    aligned_cycle_coords = cycle_avg_coords[p_reorder].permute(1, 0, 2).unsqueeze(0)
+                '''
                 aligned_cycle_coords = aligned_cycle_coords.squeeze(0).permute(1, 0, 2)
                 cycle_avg_indices_reordered = [cycle_avg_indices[l] for l in p_reorder]
 
@@ -255,8 +264,18 @@ def smooth_cycle_coords(model, cycle_indices, new_pos, dihedral_pairs, cycle_sta
     q_cycle_coords_aligned = final_cycle_coords_unaligned[0]
     cycle_rmsd_mask = [True if a in np.unique(cycle_pairs) else False for a in Sx_cycle[0]]
     # cycle_rmsd_mask = [True for a in Sx_cycle[0]]
+    
+    # ADDED TRY EXCEPT
     p_cycle_coords_aligned = align_coords_Kabsch(p_cycle_coords, q_cycle_coords, cycle_rmsd_mask).permute(0, 2, 1, 3)
-
+    '''
+    try:
+        p_cycle_coords_aligned = align_coords_Kabsch(p_cycle_coords, q_cycle_coords, cycle_rmsd_mask).permute(0, 2, 1, 3)
+        # print(f"P CYCLE: {p_cycle_coords.shape}") 
+        # print(f"P ALIGNED: {p_cycle_coords_aligned.shape}")
+    except:
+        print("EXCEPT STATEMENT***************")
+        p_cycle_coords_aligned = p_cycle_coords.permute(0, 2, 1, 3)
+    '''
     # average aligned coords
     cycle_avg_coords_ = torch.vstack([q_cycle_coords_aligned.unsqueeze(0), p_cycle_coords_aligned]) * cycle_mask[:, Sx_cycle[0]].unsqueeze(-1).unsqueeze(-1)
     cycle_avg_coords = cycle_avg_coords_.sum(dim=0) / cycle_mask[:, Sx_cycle[0]].sum(dim=0).unsqueeze(-1).unsqueeze(-1)

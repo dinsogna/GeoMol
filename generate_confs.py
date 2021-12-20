@@ -61,6 +61,7 @@ for smi, n_confs in tqdm(test_data.values):
     model_coords = construct_conformers(data, model)
     mols = []
     for x in model_coords.split(1, dim=1):
+        # print("SHAPE: " + str(x.shape))
         mol = Chem.AddHs(Chem.MolFromSmiles(smi))
         coords = x.squeeze(1).double().cpu().detach().numpy()
         mol.AddConformer(Chem.Conformer(n_atoms), assignId=True)

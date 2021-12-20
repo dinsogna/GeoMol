@@ -9,6 +9,8 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 import torch.nn as nn
 
+from model.inference import construct_conformers
+
 
 def train(model, loader, optimizer, device, scheduler, logger, epoch, writer):
     model.train()
@@ -19,9 +21,44 @@ def train(model, loader, optimizer, device, scheduler, logger, epoch, writer):
         data = data.to(device)
         optimizer.zero_grad()
 
-        result = model(data) if epoch > 1 else model(data, ignore_neighbors=True)
+        org_loss = model(data) if epoch > 1 else model(data, ignore_neighbors=True)
+
+        if epoch > 0:
+            # predicted 3D Conformation coordinates for atoms in batch (16 molecules)
+            conf = construct_conformers(data, model)
+
+            # single actual 3D conformation (batch of 16 molecules)
+            pos_list = data.pos
+            pos = torch.cat([torch.cat([p[0][0] for p in pos_list]).unsqueeze(1)], dim=1)
+
+            # make sure same dimensions
+            # print(f"CAT POS: {pos.shape}")    
+            # print("CONF SHAPE: " + str(conf.shape))
+            
+            # calculate MSE 
+            MSE_loss_func = nn.MSELoss()
+            # rec_loss = torch.sqrt(MSE_loss_func(conf, pos))
+            rec_loss = MSE_loss_func(conf, pos)
+            # print(f"MSE LOSS: {rec_loss}")
+            
+            # combine losses to get final loss
+            # print("MSE LOSS: " + str(rec_loss))
+            # print("ORG LOSS: " + str(org_loss))
+            result = org_loss + rec_loss
+        else:
+            result = org_loss
         result.backward()
 
+
+
+
+        # print(conf)
+        # print("DATA POS: " + str(len(data.pos)))
+        # print("DATA POS 0: " + str(len(data.pos[0])))
+        # print(f"ZERO ZERO: {data.pos[0][0]}")
+        # print(f"data.pos[0][0] SHAPE: {data.pos[0][0].shape}")
+
+  
         # clip the gradients
         nn.utils.clip_grad_norm_(model.parameters(), max_norm=10, norm_type=2)
 
@@ -33,6 +70,8 @@ def train(model, loader, optimizer, device, scheduler, logger, epoch, writer):
         optimizer.step()
         if isinstance(scheduler, NoamLR):
             scheduler.step()
+        # loss_all += result.item()
+        # loss_log += result.item()
         loss_all += result.item()
         loss_log += result.item()
 

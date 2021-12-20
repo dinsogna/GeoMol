@@ -47,6 +47,20 @@ def align_coords_Kabsch(p_cycle_coords, q_cycle_coords, p_mask, q_mask=None):
 
     H = torch.matmul(p_cycle_coords_centered.permute(0, 1, 3, 2), q_cycle_coords_centered.unsqueeze(0))
     u, s, v = torch.svd(H)
+
+    '''
+    try:
+        u, s, v = torch.svd(H)
+    except:
+        print("EXCEPT SVD")
+        print(f"H: {H}")
+        # print(f"CONDITION: {torch.linalg.cond(H)}")
+        H = torch.zeros_like(H) + 1e-4*torch.rand(H.shape)
+        print(f"NEW H: {H}")
+
+        u,s,v = torch.svd(H)
+        # u, s, v = torch.svd(H +  1e-4*H.mean()*torch.rand_like(H))
+    '''
     d = torch.sign(torch.det(torch.matmul(v, u.permute(0, 1, 3, 2))))
     R_1 = torch.diag_embed(torch.ones([p_cycle_coords.size(0), q_cycle_coords.size(0), 3]))
     R_1[:, :, 2, 2] = d

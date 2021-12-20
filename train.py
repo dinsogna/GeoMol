@@ -13,10 +13,11 @@ from model.featurization import construct_loader
 from model.parsing import parse_train_args, set_hyperparams
 
 from torch.utils.tensorboard import SummaryWriter
-import resource
-rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
-resource.setrlimit(resource.RLIMIT_NOFILE, (4096, rlimit[1]))
+# import resource
+# rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+# resource.setrlimit(resource.RLIMIT_NOFILE, (4096, rlimit[1]))
 # torch.multiprocessing.set_sharing_strategy('file_system')
+
 
 # add training args
 args = parse_train_args()
